@@ -75,14 +75,14 @@ class RestoreAction(actions.BaseAction):
 
         # we validate that the discovered restore type and the given options
         # fit together
-        if self.repo.restore_type == "inc":
+        if self.repo.ref_type == "inc":
             if self.values.at:
                 log.Log("You can't give an increment file and a time to "
                         "restore at the same time.", log.ERROR)
                 return_code |= 1
             elif not self.values.increment:
                 self.values.increment = True
-        elif self.repo.restore_type in ("base", "subdir"):
+        elif self.repo.ref_type in ("base", "subdir"):
             if self.values.increment:
                 log.Log("You can't use the --increment option and _not_ "
                         "give an increment file", log.ERROR)
@@ -138,12 +138,9 @@ class RestoreAction(actions.BaseAction):
                     "Unable to open logfile due to exception '{ex}'".format(
                         ex=exc), log.WARNING)
 
-        # we need now to identify the actual time of restore
-        self.inc_rpath = self.repo.data_dir.append_path(
-            b'increments', self.repo.restore_index)
         if self.values.at:
             self.action_time = self._get_parsed_time(self.values.at,
-                                                     ref_rp=self.inc_rpath)
+                                                     ref_rp=self.repo.ref_inc)
             if self.action_time is None:
                 return 1
         elif self.values.increment:
@@ -175,9 +172,8 @@ class RestoreAction(actions.BaseAction):
             return 1
         try:
             if Globals.get_api_version() < 201:  # compat200
-                restore.Restore(
-                    self.repo.base_dir.new_index(self.repo.restore_index),
-                    self.inc_rpath, self.dir.base_dir, self.action_time)
+                restore.Restore(self.repo.ref_path, self.repo.ref_inc,
+                                self.dir.base_dir, self.action_time)
             else:
                 self._operate_restore()
         except OSError as exc:
@@ -198,7 +194,7 @@ class RestoreAction(actions.BaseAction):
                                dp=self.dir.base_dir), log.NOTE)
 
         self.repo.initialize_restore(self.action_time)
-        self.repo.initialize_rf_cache(self.inc_rpath)
+        self.repo.initialize_rf_cache(self.repo.ref_inc)
         target_iter = self.dir.get_initial_iter()
         src_diff_iter = self.repo.get_diffs(target_iter)
         self.dir.patch(src_diff_iter)

@@ -139,7 +139,6 @@
 ** `.set_select`
 ** `.setup_paths`
 ** `.touch_current_mirror`
-** `.update_quoting`
 ** `.verify`
 
 === External

@@ -292,6 +292,14 @@ information in it.
 
         # FIXME we're retransforming bytes into a file pointer
         if select_opts:
+            if self.ref_index:
+                levels = len(self.ref_index)
+                shifted_levels = target_rp.shift_index(levels)
+                if shifted_levels < levels or target_rp.index != self.ref_index:
+                    log.Log("Target path {tp} isn't similar enough to source "
+                            "sub path {sb}, selection might fail, result is "
+                            "undefined ".format(tp=target_rp, sb=self.ref_path),
+                            log.WARNING)
             if Globals.get_api_version() >= 201:  # compat200
                 self._shadow.set_select(
                     target_rp, select_opts, *list(map(io.BytesIO, select_data)))

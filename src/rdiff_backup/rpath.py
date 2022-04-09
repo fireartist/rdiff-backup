@@ -1003,7 +1003,7 @@ class RPath(RORPath):
                 log.Log("Path '{pa}' looks like an increment but doesn't "
                         "have 'rdiff-backup-data' in its path".format(
                             pa=self), log.ERROR)
-                return (self, [], None)
+                return (self, (), None)
             else:
                 data_idx = path_list.index(b"rdiff-backup-data")
                 if b"increments" in path_list:
@@ -1022,26 +1022,26 @@ class RPath(RORPath):
                     log.Log("Path '{pa}' looks like an increment but "
                             "doesn't have 'rdiff-backup-data/increments' "
                             "in its path.".format(pa=self), log.ERROR)
-                    return (self, [], None)
+                    return (self, (), None)
                 # base_dir is the directory above the data directory
                 base_dir = RPath(self.conn, b"/".join(path_list[:data_idx]))
-                return (base_dir, base_index, "inc")
+                return (base_dir, tuple(base_index), "inc")
         else:
             # rpath is either the base directory itself or a sub-dir of it
             if (self.lstat() and self.isdir()
                     and b"rdiff-backup-data" in self.listdir()):
                 # it's a base directory, simple case...
-                return (self, [], "base")
+                return (self, (), "base")
             parent_rp = self
             for element in range(1, len(path_list)):
                 parent_rp = parent_rp.get_parent_rp()
                 if (parent_rp.lstat() and parent_rp.isdir()
                         and b"rdiff-backup-data" in parent_rp.listdir()):
-                    return (parent_rp, path_list[-element:], "subdir")
+                    return (parent_rp, tuple(path_list[-element:]), "subdir")
             log.Log("Path '{pa}' couldn't be identified as being within "
                     "an existing backup repository".format(pa=self),
                     log.ERROR)
-            return (self, [], None)
+            return (self, (), None)
 
     def get_incfiles_list(self):
         """
@@ -1084,6 +1084,26 @@ class RPath(RORPath):
     def new_index_empty(self, index):
         """Return similar RPath with given index, but initialize to empty"""
         return self.__class__(self.conn, self.base, index, {'type': None})
+
+    def shift_index(self, levels):
+        """
+        Shift index by levels number of directories/files
+
+        The base is reduced by the given number of levels, whereas the index
+        is increased by the same levels, or if there are not enough levels
+        available in self.base, as many as necessary to keep one level.
+
+        Returns the number of shifts which occurred, normally levels, or less.
+        """
+        split_base = self.base.split(b'/')
+        if len(split_base) > levels:
+            self.base = b"/".join(split_base[:-levels])
+            self.index = tuple(split_base[-levels:]) + self.index
+            return levels
+        else:  # we take as much as we can but leave one level in base
+            self.base = split_base[0]
+            self.index = tuple(split_base[1:]) + self.index
+            return len(split_base - 1)
 
     def get_temp_rpath(self, sibling=False):
         """Return new temp rpath in given or parent directory"""

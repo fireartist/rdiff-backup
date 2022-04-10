@@ -63,6 +63,7 @@ class RestoreAction(actions.BaseAction):
                 must_be_writable=False, must_exist=True, can_be_sub_path=True
             )
             self.dir = directory.WriteDir(self.connected_locations[1],
+                                          self.repo.ref_index,
                                           self.values.force,
                                           self.values.create_full_path)
         return conn_value

@@ -94,8 +94,8 @@ class Select:
             "Root path '{rp}' must be a real remote path.".format(rp=rootrp))
         self.selection_functions = []
         self.rpath = rootrp
-        self.prefix = self.rpath.path
-        self.prefixindex = tuple([x for x in self.prefix.split(b"/") if x])
+        self.prefix_index = tuple(x for x in self.rpath.path.split(b"/") if x)
+        self.ref_index = self.rpath.index
         self._init_parsing_mapping()
 
     def get_select_iter(self):
@@ -270,9 +270,9 @@ class Select:
         fileindex = tuple([x for x in filename.split(b"/") if x])
 
         # are the first elements of the path the same?
-        if fileindex[:len(self.prefixindex)] != self.prefixindex:
+        if fileindex[:len(self.prefix_index)] != self.prefix_index:
             raise FilePrefixError(filename)
-        return fileindex[len(self.prefixindex):]
+        return fileindex[len(self.prefix_index) - len(self.ref_index):]
 
     def _listdir_sorted(self, dir_rp):
         """List directory rpath with error logging and sorting entries"""
@@ -292,7 +292,7 @@ class Select:
 cannot match any files in the base directory '{bd}'.
 Useful file specifications begin with the base directory or some
 pattern (such as '**') which matches the base directory""".format(
-                fs=exc, bd=self.prefix))
+                fs=exc, bd=self.rpath))
         elif isinstance(exc, GlobbingError):
             log.Log.FatalError("Fatal Error while processing expression "
                                "'{ex}'".format(ex=exc))
@@ -358,7 +358,8 @@ probably isn't what you meant""".format(se=self.selection_functions[-1].name))
                 log.Log(
                     "File specification '{fs}' in filelist {fl} "
                     "doesn't start with correct prefix {cp}. Ignoring.".format(
-                        fs=exc, fl=filelist_name, cp=self.prefix), log.WARNING)
+                        fs=exc, fl=filelist_name, cp=self.rpath),
+                    log.WARNING)
                 if prefix_warnings[0] == 5:
                     log.Log("Future prefix errors will not be logged",
                             log.WARNING)

@@ -119,6 +119,20 @@ class ReadDir(Dir, locations.ReadLocation):
 
 class WriteDir(Dir, locations.WriteLocation):
 
+
+    def __init__(self, base_dir, ref_index, force, create_full_path):
+        # we use the reference index from the repository to shift the base
+        # directory, so that repository and directory are aligned
+        if ref_index:
+            levels = len(ref_index)
+            shifted_levels = base_dir.shift_index(levels)
+            if shifted_levels < levels or base_dir.index != ref_index:
+                log.Log("Target path {tp} isn't similar enough to source "
+                        "sub path {sb}, selection might fail, result is "
+                        "undefined ".format(tp=target_rp, sb=self.ref_path),
+                        log.WARNING)
+        super().__init__(base_dir, force, create_full_path)
+
     def setup(self, src_repo, owners_map=None):
         ret_code = super().setup()
         if ret_code != 0:

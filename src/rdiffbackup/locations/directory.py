@@ -119,6 +119,8 @@ class ReadDir(Dir, locations.ReadLocation):
 
 class WriteDir(Dir, locations.WriteLocation):
 
+    # used to detect usage of unequal sub-indexes in conjunction with selection
+    unequal_sub_indexes = False
 
     def __init__(self, base_dir, ref_index, force, create_full_path):
         # we use the reference index from the repository to shift the base
@@ -127,10 +129,11 @@ class WriteDir(Dir, locations.WriteLocation):
             levels = len(ref_index)
             shifted_levels = base_dir.shift_index(levels)
             if shifted_levels < levels or base_dir.index != ref_index:
-                log.Log("Target path {tp} isn't similar enough to source "
-                        "sub path {sb}, selection might fail, result is "
-                        "undefined ".format(tp=target_rp, sb=self.ref_path),
+                log.Log("Target path {tp} should end like repo sub index {si}, "
+                        "else selection will fail and result is "
+                        "undefined ".format(tp=base_dir, si=ref_index),
                         log.WARNING)
+                self.unequal_sub_indexes = True
         super().__init__(base_dir, force, create_full_path)
 
     def setup(self, src_repo, owners_map=None):
@@ -194,6 +197,9 @@ class WriteDir(Dir, locations.WriteLocation):
 
         # FIXME we're retransforming bytes into a file pointer
         if select_opts:
+            if self.unequal_sub_indexes:  # not compatible with selection
+                log.Log.FatalError(
+                    "See above warning regarding different endings")
             if Globals.get_api_version() >= 201:  # compat200
                 self._shadow.set_select(self.base_dir, select_opts,
                                         *list(map(io.BytesIO, select_data)))

@@ -447,8 +447,7 @@ class RepoShadow:
         attribute listings.  Thus any diffs we generate will be
         snapshots.
         """
-        mir_iter = cls._subtract_indices(cls.mirror_base.index,
-                                         cls._get_mirror_rorp_iter())
+        mir_iter = cls._get_mirror_rorp_iter()
         collated = rorpiter.Collate2Iters(mir_iter, target_iter)
         return cls._get_diffs_from_collated(collated)
 
@@ -511,8 +510,7 @@ class RepoShadow:
         elif Globals.preserve_hardlinks and map_hardlinks.is_linked(mir_rorp):
             mir_rorp.flaglinked(map_hardlinks.get_link_index(mir_rorp))
         elif mir_rorp.isreg():
-            expanded_index = cls.mirror_base.index + mir_rorp.index
-            file_fp = cls.rf_cache.get_fp(expanded_index, mir_rorp)
+            file_fp = cls.rf_cache.get_fp(mir_rorp.index, mir_rorp)
             mir_rorp.setfile(hash.FileWrapper(file_fp))
         mir_rorp.set_attached_filetype('snapshot')
         return mir_rorp
